@@ -214,6 +214,7 @@ pnpm web-app:start    # Start developing
 
 ## Testing
 
+### Unit Tests
 Both apps use Vitest as the test runner. Run tests from within the app directory:
 ```bash
 cd apps/web-app
@@ -221,3 +222,78 @@ ng test
 ```
 
 Note: Test generation is disabled by default in schematics configuration.
+
+### E2E Tests (Playwright)
+Both apps use Playwright for end-to-end testing with TDD approach:
+
+**Run E2E tests:**
+```bash
+# From root
+pnpm web-app:test:e2e      # Web app E2E tests
+pnpm admin-app:test:e2e    # Admin app E2E tests
+pnpm test:e2e:all          # All E2E tests
+
+# From app directory
+cd apps/web-app
+pnpm test:e2e              # Run tests
+pnpm test:e2e:ui           # Run with UI mode
+pnpm test:e2e:headed       # Run in headed mode
+pnpm test:e2e:debug        # Run in debug mode
+```
+
+**Test locations:**
+- Web app: `apps/web-app/e2e/`
+- Admin app: `apps/admin-app/e2e/`
+
+## Deployment & CI/CD
+
+### GitHub Actions Workflows
+
+**CI Workflow (`.github/workflows/ci.yml`)**
+Runs on every push and pull request:
+1. Sets up Node.js, pnpm, and Supabase
+2. Installs dependencies and Playwright browsers
+3. Builds both applications
+4. Runs admin-app E2E tests
+5. Runs web-app E2E tests
+6. Uploads test reports as artifacts
+
+**Deploy Workflow (`.github/workflows/deploy.yml`)**
+Runs on push to main branch:
+1. Links to Supabase project
+2. Deploys database migrations
+3. Builds admin-app and web-app
+4. Deploys admin-app to Cloudflare Pages (`ice-breaker-admin`)
+5. Deploys web-app to Cloudflare Pages (`ice-breaker`)
+
+### Required GitHub Secrets
+
+For deployment to work, configure these secrets in GitHub repository settings:
+
+**Supabase:**
+- `SUPABASE_ACCESS_TOKEN` - Supabase access token from dashboard
+- `SUPABASE_PROJECT_REF` - Your Supabase project reference ID
+
+**Cloudflare Pages:**
+- `CLOUDFLARE_API_TOKEN` - Cloudflare API token with Pages permissions
+- `CLOUDFLARE_ACCOUNT_ID` - Your Cloudflare account ID
+
+### Deployment Setup
+
+1. **Create Supabase Project:**
+   - Go to https://supabase.com/dashboard
+   - Create a new project
+   - Get project ref and access token
+
+2. **Create Cloudflare Pages Projects:**
+   - Go to Cloudflare dashboard > Pages
+   - Create two projects: `ice-breaker` and `ice-breaker-admin`
+   - Get API token and account ID
+
+3. **Configure GitHub Secrets:**
+   - Go to repository Settings > Secrets and variables > Actions
+   - Add all required secrets listed above
+
+4. **Deploy:**
+   - Push to main branch triggers automatic deployment
+   - Or manually trigger via Actions tab > Deploy > Run workflow
