@@ -1,0 +1,30 @@
+{
+  "name": "ice-breaker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "IceBreaker - A turn-based conversation card game with voice calls",
+  "scripts": {
+    "web-app:start": "pnpm --filter web-app start",
+    "web-app:build": "pnpm --filter web-app build",
+    "web-app:test": "pnpm --filter web-app test",
+    "admin-app:start": "pnpm --filter admin-app start",
+    "admin-app:build": "pnpm --filter admin-app build",
+    "admin-app:test": "pnpm --filter admin-app test",
+    "build:all": "pnpm -r build",
+    "test:all": "pnpm -r test",
+    "install:all": "pnpm install -r"
+  },
+  "keywords": [
+    "webrtc",
+    "voice-call",
+    "card-game",
+    "conversation",
+    "angular",
+    "supabase"
+  ],
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=10.0.0"
+  }
+}

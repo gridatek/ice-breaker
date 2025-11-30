@@ -1,0 +1,92 @@
+# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Compiled output
+dist/
+tmp/
+out-tsc/
+bazel-out/
+apps/*/dist/
+apps/*/tmp/
+apps/*/out-tsc/
+
+# Angular cache
+.angular/
+apps/*/.angular/
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+apps/*/coverage/
+__screenshots__/
+
+# Environment files (sensitive data)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+apps/*/.env
+apps/*/.env.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDEs and editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# Misc
+.sass-cache/
+connect.lock
+typings/
+libpeerconnection.log
+testem.log
+
+# pnpm
+.pnpm-debug.log
+.pnpm-store/
+
+# Build artifacts
+*.tsbuildinfo
+
+# Temporary files
+*.tmp
+*.temp
