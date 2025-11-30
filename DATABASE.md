@@ -1,341 +1,501 @@
-# Database Schema Documentation
+# IceBreaker Database Schema 🎮
 
-This document describes the database schema for the IceBreaker application.
+Welcome to the IceBreaker game database! This schema is designed for **maximum fun** and engagement.
 
 ## Overview
 
-The IceBreaker database is built on Supabase (PostgreSQL) and includes:
-- 6 main tables with relationships
-- Row Level Security (RLS) policies for access control
-- Helper functions for common operations
-- Automated triggers for timestamps
-- Seed data for question categories
+The database is built on Supabase (PostgreSQL) with:
+- 🎮 **10 tables** for complete game functionality
+- 🔒 **Row Level Security** for data protection
+- 🎯 **7 game functions** for easy API interactions
+- ⭐ **Achievement system** for player progression
+- 💬 **Reaction system** for engagement
+- 📊 **Stats tracking** across games
+
+## Core Concept
+
+**Games, not Rooms!** We use game-focused terminology:
+- `games` instead of rooms - each session is a game
+- `players` instead of participants - you're playing a game!
+- `rounds` instead of turns - structured gameplay
+- `question_cards` instead of questions - feels like a card game
+- **Reactions** - express yourself during gameplay
+- **Achievements** - unlock as you play
+
+---
 
 ## Tables
 
-### `question_categories`
-Stores the different types of questions available.
+### 1. `card_categories` 🎴
+Categories of question cards.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | id | UUID | Primary key |
-| name | TEXT | Unique category name (fun, deep, flirty, random) |
+| name | TEXT | Unique name (laugh, think, flirt, wild) |
+| display_name | TEXT | UI display name with emoji |
 | description | TEXT | Category description |
-| color | TEXT | Hex color code for UI |
-| created_at | TIMESTAMPTZ | Creation timestamp |
-| updated_at | TIMESTAMPTZ | Last update timestamp |
+| icon | TEXT | Emoji or icon name |
+| color | TEXT | Hex color for UI |
+| is_active | BOOLEAN | Whether category is available |
+| sort_order | INTEGER | Display order |
 
-**RLS Policies:**
-- Everyone can read categories
-- Only authenticated users can create/update
+**Default Categories:**
+- 😂 **Laugh** - Light, funny questions
+- 🤔 **Think** - Deep, thought-provoking
+- 😍 **Flirt** - Playful, romantic
+- 🎲 **Wild** - Completely random
 
 ---
 
-### `questions`
-Pool of conversation starter questions.
+### 2. `question_cards` 🃏
+The actual question cards players draw.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | id | UUID | Primary key |
-| text | TEXT | The question text |
-| category_id | UUID | Foreign key to question_categories |
-| is_active | BOOLEAN | Whether question is available for use |
-| difficulty_level | INTEGER | Difficulty rating (1-5) |
-| created_at | TIMESTAMPTZ | Creation timestamp |
-| updated_at | TIMESTAMPTZ | Last update timestamp |
-| created_by | UUID | Foreign key to auth.users |
+| text | TEXT | The question |
+| category_id | UUID | Card category |
+| difficulty | INTEGER | 1-5 difficulty rating |
+| spice_level | INTEGER | 1-5 boldness rating |
+| is_active | BOOLEAN | Available for play |
+| uses_count | INTEGER | How many times played |
+| average_rating | NUMERIC | Player ratings |
+| tags | TEXT[] | Filter tags |
+| created_at | TIMESTAMPTZ | Creation time |
+| created_by | UUID | Creator |
 
-**Indexes:**
-- `idx_questions_active` - For filtering active questions
-- `idx_questions_category` - For category-based queries
-
-**RLS Policies:**
-- Everyone can view active questions
-- Authenticated users can view all questions
-- Authenticated users can create questions
-- Users can update their own questions
+**Tags examples:** `'first-date'`, `'deep-dive'`, `'party'`, `'spicy'`
 
 ---
 
-### `rooms`
-Game rooms where participants meet and play.
+### 3. `games` 🎮
+Game sessions (previously "rooms").
 
 | Column | Type | Description |
 |--------|------|-------------|
 | id | UUID | Primary key |
-| code | TEXT | Unique 6-character join code |
-| name | TEXT | Optional room name |
-| creator_id | UUID | Foreign key to auth.users |
-| status | TEXT | Room status (waiting, active, completed, cancelled) |
-| max_participants | INTEGER | Maximum number of participants (2-10) |
-| settings | JSONB | Room configuration (question preferences, etc.) |
-| created_at | TIMESTAMPTZ | Creation timestamp |
-| updated_at | TIMESTAMPTZ | Last update timestamp |
+| code | TEXT | 6-char join code (e.g., "ABC123") |
+| name | TEXT | Optional game name |
+| host_id | UUID | Game host (creator) |
+| status | TEXT | lobby, playing, paused, finished, abandoned |
+| game_mode | TEXT | classic, speed, deep-dive, party |
+| max_players | INTEGER | 2-10 players |
+| current_round | INTEGER | Current round number |
+| total_rounds | INTEGER | Max rounds (NULL = unlimited) |
+| settings | JSONB | Game configuration |
+| created_at | TIMESTAMPTZ | Creation time |
 | started_at | TIMESTAMPTZ | When game started |
-| ended_at | TIMESTAMPTZ | When game ended |
+| finished_at | TIMESTAMPTZ | When game ended |
+| total_cards_played | INTEGER | Cards played this game |
+| total_reactions | INTEGER | Reactions given this game |
 
-**Indexes:**
-- `idx_rooms_code` - For fast code lookups
-- `idx_rooms_status` - For filtering by status
-- `idx_rooms_creator` - For creator queries
+**Game Modes:**
+- **Classic** - Standard gameplay
+- **Speed** - Quick rounds
+- **Deep-Dive** - Only deep questions
+- **Party** - Fun & wild only
 
-**RLS Policies:**
-- Users can view rooms they created or are participating in
-- Anyone can view rooms by code (for joining)
-- Authenticated users can create rooms
-- Creators can update/delete their rooms
+**Settings Example:**
+```json
+{
+  "categories_enabled": ["laugh", "think", "flirt"],
+  "allow_skip": true,
+  "round_timer_seconds": 300,
+  "auto_next_round": false
+}
+```
 
 ---
 
-### `participants`
-People in a room (creators with auth, guests without).
+### 4. `players` 👥
+Participants in a game.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | id | UUID | Primary key |
-| room_id | UUID | Foreign key to rooms |
-| user_id | UUID | Foreign key to auth.users (NULL for guests) |
-| display_name | TEXT | Name shown in room |
-| is_creator | BOOLEAN | Whether this is the room creator |
-| is_guest | BOOLEAN | Whether this is a guest (no auth) |
-| connection_status | TEXT | WebRTC connection status |
+| game_id | UUID | The game they're in |
+| user_id | UUID | User (NULL for guests) |
+| display_name | TEXT | Name shown in game |
+| avatar_url | TEXT | Profile picture |
+| is_host | BOOLEAN | Is the game host |
+| is_guest | BOOLEAN | No account required! |
+| connection_status | TEXT | online, offline, away |
 | peer_id | TEXT | WebRTC peer ID |
-| joined_at | TIMESTAMPTZ | When participant joined |
-| left_at | TIMESTAMPTZ | When participant left (NULL if still present) |
+| cards_drawn | INTEGER | Cards drawn this game |
+| reactions_given | INTEGER | Reactions given |
+| reactions_received | INTEGER | Reactions received |
+| favorite_cards | TEXT[] | Saved favorite cards |
+| joined_at | TIMESTAMPTZ | When joined |
+| left_at | TIMESTAMPTZ | When left (NULL if active) |
+| last_seen_at | TIMESTAMPTZ | Last activity |
 
-**Constraints:**
-- Unique (room_id, user_id)
-- Unique (room_id, display_name)
-
-**Indexes:**
-- `idx_participants_room` - For room-based queries
-- `idx_participants_user` - For user-based queries
-
-**RLS Policies:**
-- Participants can view others in their room
-- Anyone can join as participant
-- Users can update/delete their own participant record
+**Note:** Guests can play without authentication! 🎉
 
 ---
 
-### `game_sessions`
-Active game state for a room.
+### 5. `rounds` 🔄
+Individual rounds within a game.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | id | UUID | Primary key |
-| room_id | UUID | Foreign key to rooms (unique) |
-| current_turn_participant_id | UUID | Foreign key to participants |
-| current_question_id | UUID | Foreign key to questions |
-| turn_number | INTEGER | Current turn number |
-| status | TEXT | Session status (active, paused, completed) |
-| settings | JSONB | Game settings |
-| created_at | TIMESTAMPTZ | Creation timestamp |
-| updated_at | TIMESTAMPTZ | Last update timestamp |
-
-**Constraints:**
-- One game session per room
-
-**Indexes:**
-- `idx_game_sessions_room` - For room-based queries
-
-**RLS Policies:**
-- Participants can view game sessions for their rooms
-- Room creators can create sessions
-- Participants can update sessions
+| game_id | UUID | The game |
+| round_number | INTEGER | Round # in game |
+| current_player_id | UUID | Whose turn it is |
+| current_card_id | UUID | Card being played |
+| card_category_id | UUID | Category of card |
+| status | TEXT | active, completed, skipped |
+| started_at | TIMESTAMPTZ | Round start |
+| completed_at | TIMESTAMPTZ | Round end |
 
 ---
 
-### `question_history`
-Tracks which questions have been asked in a session.
+### 6. `card_plays` 📝
+History of cards played.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | id | UUID | Primary key |
-| game_session_id | UUID | Foreign key to game_sessions |
-| question_id | UUID | Foreign key to questions |
-| participant_id | UUID | Foreign key to participants |
-| turn_number | INTEGER | Turn when question was asked |
-| asked_at | TIMESTAMPTZ | When question was asked |
+| game_id | UUID | The game |
+| round_id | UUID | The round |
+| card_id | UUID | Card that was played |
+| player_id | UUID | Who played it |
+| was_skipped | BOOLEAN | Did they skip? |
+| time_spent_seconds | INTEGER | Discussion time |
+| played_at | TIMESTAMPTZ | When played |
 
-**Constraints:**
-- Unique (game_session_id, question_id) - Prevents duplicate questions
+**Unique constraint:** Can't play same card twice in one game!
 
-**Indexes:**
-- `idx_question_history_session` - For session-based queries
-- `idx_question_history_turn` - For turn-based queries
+---
 
-**RLS Policies:**
-- Participants can view history for their sessions
-- Participants can add to history
+### 7. `reactions` 💕
+Express yourself during gameplay!
 
-## Helper Functions
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| card_play_id | UUID | Which card play |
+| player_id | UUID | Who reacted |
+| reaction_type | TEXT | Type of reaction |
+| created_at | TIMESTAMPTZ | When reacted |
 
-### `generate_room_code()`
-Generates a unique 6-character room code.
+**Reaction Types:**
+- ❤️ `love` - Loved it!
+- 😂 `laugh` - Hilarious
+- 🤯 `mind_blown` - Deep!
+- 🔥 `fire` - Spicy!
+- ⏭️ `skip` - Pass
+- 💾 `save` - Favorite
 
-**Returns:** `TEXT`
+---
 
-**Usage:**
+### 8. `player_profiles` 👤
+Persistent player data across games.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| user_id | UUID | Primary key |
+| username | TEXT | Unique username |
+| bio | TEXT | Player bio |
+| avatar_url | TEXT | Profile picture |
+| total_games_played | INTEGER | Lifetime games |
+| total_games_hosted | INTEGER | Games hosted |
+| total_cards_played | INTEGER | Cards drawn |
+| total_reactions_given | INTEGER | Reactions given |
+| total_reactions_received | INTEGER | Reactions received |
+| favorite_category_id | UUID | Preferred category |
+| achievements | JSONB | Unlocked achievements |
+| preferences | JSONB | User preferences |
+| created_at | TIMESTAMPTZ | Profile creation |
+| updated_at | TIMESTAMPTZ | Last update |
+
+---
+
+### 9. `achievements` 🏆
+Unlockable achievements.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| code | TEXT | Unique code |
+| name | TEXT | Achievement name |
+| description | TEXT | What it's for |
+| icon | TEXT | Emoji/icon |
+| category | TEXT | social, conversation, host, engagement, special |
+| rarity | TEXT | common, rare, epic, legendary |
+| criteria | JSONB | Unlock requirements |
+
+**Example Achievements:**
+- 🎮 **Icebreaker Master** - Host your first game
+- 🦋 **Social Butterfly** - Play with 10 different people
+- 🧠 **Deep Thinker** - Play 25 Think cards
+- 👑 **Legendary Connector** - Play 50 games
+
+---
+
+### 10. `player_achievements` ⭐
+Achievements unlocked by players.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| player_profile_id | UUID | Player who unlocked |
+| achievement_id | UUID | Which achievement |
+| unlocked_at | TIMESTAMPTZ | When unlocked |
+| game_id | UUID | Game where unlocked |
+
+---
+
+## Game Functions (The Fun API!)
+
+### `create_game(...)` 🎮
+Create a new game!
+
+**Parameters:**
+- `p_name` (TEXT, optional) - Game name
+- `p_game_mode` (TEXT, default: 'classic') - Game mode
+- `p_max_players` (INTEGER, default: 2) - Max players (2-10)
+- `p_total_rounds` (INTEGER, optional) - Max rounds
+- `p_settings` (JSONB, optional) - Game settings
+
+**Returns:** `games` record
+
+**Example:**
 ```sql
-SELECT generate_room_code();
--- Returns: 'ABC123'
+SELECT * FROM create_game('Friday Night Fun', 'party', 4, 10);
 ```
 
 ---
 
-### `create_room(p_name, p_max_participants, p_settings)`
-Creates a new room with a unique code and adds creator as first participant.
+### `join_game(...)` 🚪
+Join an existing game!
 
 **Parameters:**
-- `p_name` (TEXT, optional) - Room name
-- `p_max_participants` (INTEGER, default: 2) - Maximum participants
-- `p_settings` (JSONB, default: {}) - Room settings
+- `p_game_code` (TEXT) - 6-char game code
+- `p_display_name` (TEXT) - Your name
+- `p_avatar_url` (TEXT, optional) - Profile pic
 
-**Returns:** `rooms` record
-
-**Usage:**
-```sql
-SELECT * FROM create_room('My Room', 4, '{"categories": ["fun", "deep"]}'::jsonb);
-```
-
----
-
-### `join_room(p_room_code, p_display_name)`
-Joins a room as guest or authenticated user.
-
-**Parameters:**
-- `p_room_code` (TEXT) - The room code
-- `p_display_name` (TEXT) - Display name for participant
-
-**Returns:** `participants` record
+**Returns:** `players` record
 
 **Raises:**
-- Exception if room not found
-- Exception if room is full
-- Exception if display name already taken
+- Game not found
+- Game already started
+- Game is full
+- Display name taken
 
-**Usage:**
+**Example:**
 ```sql
-SELECT * FROM join_room('ABC123', 'John Doe');
+SELECT * FROM join_game('ABC123', 'John Doe');
 ```
 
 ---
 
-### `start_game_session(p_room_id, p_settings)`
-Starts a game session for a room.
+### `start_game(...)` ▶️
+Start the game! (Host only)
 
 **Parameters:**
-- `p_room_id` (UUID) - The room ID
-- `p_settings` (JSONB, default: {}) - Game settings
+- `p_game_id` (UUID) - The game to start
 
-**Returns:** `game_sessions` record
+**Returns:** `games` record (updated)
 
 **Raises:**
-- Exception if room not found
-- Exception if user is not creator
-- Exception if session already exists
+- Not the host
+- Already started
+- Need at least 2 players
 
-**Usage:**
+**Example:**
 ```sql
-SELECT * FROM start_game_session('room-uuid-here');
+SELECT * FROM start_game('game-uuid-here');
 ```
 
 ---
 
-### `draw_question(p_game_session_id, p_category_name)`
-Draws a random question that hasn't been used in the session.
+### `draw_card(...)` 🎴
+Draw a random card for your turn!
 
 **Parameters:**
-- `p_game_session_id` (UUID) - The game session ID
+- `p_game_id` (UUID) - The game
 - `p_category_name` (TEXT, optional) - Filter by category
 
-**Returns:** `questions` record
+**Returns:** `question_cards` record
 
 **Raises:**
-- Exception if no available questions found
+- No active round
+- Not your turn
+- No cards available
 
-**Usage:**
+**Example:**
 ```sql
--- Random question from any category
-SELECT * FROM draw_question('session-uuid-here');
+-- Random card from any category
+SELECT * FROM draw_card('game-uuid');
 
--- Random question from specific category
-SELECT * FROM draw_question('session-uuid-here', 'fun');
+-- Specific category
+SELECT * FROM draw_card('game-uuid', 'laugh');
 ```
 
 ---
 
-### `next_turn(p_game_session_id, p_question_id)`
-Advances to next turn and records question in history.
+### `play_card(...)` ✅
+Complete the round and move to next player!
 
 **Parameters:**
-- `p_game_session_id` (UUID) - The game session ID
-- `p_question_id` (UUID) - The question that was asked
+- `p_game_id` (UUID) - The game
+- `p_card_id` (UUID) - Card that was played
+- `p_was_skipped` (BOOLEAN, default: false) - Did they skip?
+- `p_time_spent_seconds` (INTEGER, optional) - Discussion time
 
-**Returns:** `game_sessions` record (updated)
+**Returns:** `rounds` record (next round)
 
-**Usage:**
+**Example:**
 ```sql
-SELECT * FROM next_turn('session-uuid-here', 'question-uuid-here');
+SELECT * FROM play_card('game-uuid', 'card-uuid', false, 180);
 ```
 
-## Migrations
+---
 
-Migrations are located in `supabase/migrations/` and are applied in order:
+### `add_reaction(...)` 💕
+React to a card play!
 
-1. `20251130172934_initial_schema.sql` - Core tables and indexes
-2. `20251130173000_seed_categories.sql` - Question categories and sample questions
-3. `20251130173100_rls_policies.sql` - Row Level Security policies
-4. `20251130173200_functions.sql` - Helper functions
+**Parameters:**
+- `p_card_play_id` (UUID) - The card play
+- `p_reaction_type` (TEXT) - love, laugh, mind_blown, fire, skip, save
 
-### Applying Migrations Locally
+**Returns:** `reactions` record
 
-```bash
-# Start local Supabase
-supabase start
-
-# Apply migrations
-supabase db reset
-
-# Or push to remote
-supabase db push
+**Example:**
+```sql
+SELECT * FROM add_reaction('card-play-uuid', 'love');
 ```
 
-### Applying Migrations to Production
+---
 
-Migrations are automatically applied via GitHub Actions deploy workflow when:
-1. You push to main branch (if auto-deploy enabled)
-2. You manually trigger the deploy workflow
+### `leave_game(...)` 👋
+Leave the game.
+
+**Parameters:**
+- `p_game_id` (UUID) - The game to leave
+
+**Returns:** BOOLEAN (true if successful)
+
+**Example:**
+```sql
+SELECT leave_game('game-uuid');
+```
+
+---
 
 ## Realtime Subscriptions
 
-The following tables support Supabase Realtime subscriptions:
+Subscribe to live updates:
 
-- `rooms` - Listen for room status changes
-- `participants` - Listen for participants joining/leaving
-- `game_sessions` - Listen for turn changes
-- `question_history` - Listen for new questions being asked
-
-**Example subscription:**
 ```typescript
+// Listen for players joining/leaving
 supabase
-  .channel('room-changes')
+  .channel('game-players')
   .on('postgres_changes', {
     event: '*',
     schema: 'public',
-    table: 'participants',
-    filter: `room_id=eq.${roomId}`
-  }, (payload) => {
-    console.log('Participant update:', payload);
-  })
+    table: 'players',
+    filter: `game_id=eq.${gameId}`
+  }, handlePlayerUpdate)
+  .subscribe();
+
+// Listen for round changes
+supabase
+  .channel('game-rounds')
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'rounds',
+    filter: `game_id=eq.${gameId}`
+  }, handleRoundUpdate)
+  .subscribe();
+
+// Listen for reactions
+supabase
+  .channel('game-reactions')
+  .on('postgres_changes', {
+    event: 'INSERT',
+    schema: 'public',
+    table: 'reactions'
+  }, handleNewReaction)
   .subscribe();
 ```
 
-## Security Considerations
+---
 
-1. **RLS Policies**: All tables have Row Level Security enabled
-2. **Guest Access**: Guests can participate without authentication
-3. **Room Codes**: 6-character codes use unambiguous characters (no O/0, I/1)
-4. **Creator Control**: Only room creators can start games and modify room settings
-5. **No Duplicate Questions**: Enforced at database level per session
+## Migrations
+
+Located in `supabase/migrations/`:
+
+1. **20251130180000_game_schema.sql** - Core tables and structure
+2. **20251130180100_seed_game_data.sql** - Categories, cards, achievements
+3. **20251130180200_rls_policies.sql** - Security policies
+4. **20251130180300_game_functions.sql** - Game API functions
+
+### Apply Locally
+```bash
+supabase start
+supabase db reset
+```
+
+### Apply to Production
+Automatic via GitHub Actions deploy workflow.
+
+---
+
+## Game Flow Example
+
+```sql
+-- 1. Host creates game
+SELECT * FROM create_game('Friday Fun', 'classic', 4);
+-- Returns: { code: 'ABC123', ... }
+
+-- 2. Players join
+SELECT * FROM join_game('ABC123', 'Alice');
+SELECT * FROM join_game('ABC123', 'Bob');
+SELECT * FROM join_game('ABC123', 'Charlie');
+
+-- 3. Host starts game
+SELECT * FROM start_game('game-uuid');
+
+-- 4. Player 1 draws card
+SELECT * FROM draw_card('game-uuid', 'laugh');
+
+-- 5. Other players react
+SELECT * FROM add_reaction('card-play-uuid', 'laugh');
+SELECT * FROM add_reaction('card-play-uuid', 'love');
+
+-- 6. Complete round and move to next player
+SELECT * FROM play_card('game-uuid', 'card-uuid', false, 120);
+
+-- 7. Repeat steps 4-6 until game ends!
+```
+
+---
+
+## Security
+
+✅ Row Level Security enabled on all tables
+✅ Guests can play without authentication
+✅ Players can only see their own game data
+✅ Hosts control game settings
+✅ No duplicate cards per game
+
+---
+
+## What Makes This Fun? 🎉
+
+1. **Game Language** - Everything uses game terminology
+2. **Reactions** - Express yourself with emojis!
+3. **Achievements** - Unlock as you play
+4. **Stats Tracking** - See your progress
+5. **Multiple Game Modes** - Different ways to play
+6. **Guest Access** - No barriers to entry
+7. **Round Structure** - Clear progression
+8. **Spice Levels** - Control how bold questions get
+9. **Favorite Cards** - Save the best ones
+10. **Popularity Tracking** - See which cards are loved
+
+Ready to build something awesome? Let's go! 🚀
