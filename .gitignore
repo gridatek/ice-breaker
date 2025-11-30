@@ -25,6 +25,14 @@ coverage/
 apps/*/coverage/
 __screenshots__/
 
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+apps/*/test-results/
+apps/*/playwright-report/
+apps/*/playwright/.cache/
+
 # Environment files (sensitive data)
 .env
 .env.local

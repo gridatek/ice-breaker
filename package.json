@@ -7,11 +7,14 @@
     "web-app:start": "pnpm --filter web-app start",
     "web-app:build": "pnpm --filter web-app build",
     "web-app:test": "pnpm --filter web-app test",
+    "web-app:test:e2e": "pnpm --filter web-app test:e2e",
     "admin-app:start": "pnpm --filter admin-app start",
     "admin-app:build": "pnpm --filter admin-app build",
     "admin-app:test": "pnpm --filter admin-app test",
+    "admin-app:test:e2e": "pnpm --filter admin-app test:e2e",
     "build:all": "pnpm -r build",
     "test:all": "pnpm -r test",
+    "test:e2e:all": "pnpm -r test:e2e",
     "install:all": "pnpm install -r"
   },
   "keywords": [
