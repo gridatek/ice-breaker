@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Structure
 
-This is a **pnpm workspace monorepo** containing two separate Angular applications:
+This is a **pnpm workspace monorepo** containing two Angular applications and shared libraries:
 
 ```
 ice-breaker/
@@ -42,6 +42,11 @@ ice-breaker/
 │       │   └── styles.css
 │       ├── package.json
 │       └── angular.json
+├── libs/                 # Shared libraries
+│   ├── features/         # Feature-specific libraries
+│   ├── shared/           # Shared utilities and helpers
+│   ├── data-access/      # API clients and data access
+│   └── ui/               # Shared UI components
 ├── package.json          # Root package.json with workspace scripts
 ├── pnpm-workspace.yaml   # pnpm workspace configuration
 ├── .gitignore            # Root-level gitignore
@@ -53,6 +58,8 @@ ice-breaker/
 - The root `package.json` provides convenience scripts to run commands across apps
 - Each app has its own `angular.json` configuration and `tsconfig.json` files
 - Dependencies are shared when possible via pnpm's workspace feature
+- Shared libraries in `libs/` can be imported using workspace protocol (`@ice-breaker/lib-name`)
+- Libraries are organized by type: features, shared utilities, data-access, and UI components
 
 ## Common Development Commands
 
